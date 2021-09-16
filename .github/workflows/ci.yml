@@ -1,0 +1,29 @@
+name: CI Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # Firefox in it
+    strategy:
+      matrix:
+        node-version: [14.x]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: 'https://registry.npmjs.org'
+      - run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
+      - run: echo $BRANCH.$GITHUB_RUN_ID.$GITHUB_RUN_NUMBER
+        if: ${{ github.event_name == 'push' && github.repository == 'embbnux/actions-test' }}
+        env:
+          BRANCH: ${{ steps.extract_branch.outputs.branch }}
+      - run: echo $TAG
+        if: ${{ env.TAG != '' && !contains(env.TAG, '/') && !contains(env.TAG, '-') && github.repository == 'embbnux/actions-test' }}
